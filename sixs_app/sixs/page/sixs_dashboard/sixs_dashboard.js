@@ -169,19 +169,19 @@ class SixsDashboard {
   <!-- ─ KPI Cards ─────────────────────────────────────────────────────── -->
   <div class="sx-section-label">Resumo Operacional</div>
   <div class="sx-kpi-grid">
-    ${this._kpi("clientes",        "Total de Clientes",     "🏢")}
-    ${this._kpi("ativos",          "Vigilantes Activos",    "✅")}
-    ${this._kpi("mulheres",        "Vigilantes Mulheres",   "♀")}
-    ${this._kpi("homens",          "Vigilantes Homens",     "♂")}
-    ${this._kpi("armados",         "Vigilantes Armados",    "🔫")}
-    ${this._kpi("simples",         "Vigilantes Normais",    "👤")}
-    ${this._kpi("reservas",        "Vigilantes Reservas",   "🔄")}
-    ${this._kpi("administrativos", "Administrativos",       "📋")}
-    ${this._kpi("postos",          "Postos de Vigilância",  "📍")}
-    ${this._kpi("postos_ativos",   "Postos Activos",        "🟢")}
-    ${this._kpi("tdu",             "Vigilantes TDU",        "⏱")}
-    ${this._kpi("h24",             "Vigilantes H24",        "🌐")}
-    ${this._kpi("tdn",             "Vigilantes TDN",        "🌙")}
+    ${this._kpi("clientes",        "Total de Clientes")}
+    ${this._kpi("ativos",          "Vigilantes Activos")}
+    ${this._kpi("mulheres",        "Vigilantes Mulheres")}
+    ${this._kpi("homens",          "Vigilantes Homens")}
+    ${this._kpi("armados",         "Vigilantes Armados")}
+    ${this._kpi("simples",         "Vigilantes Normais")}
+    ${this._kpi("reservas",        "Vigilantes Reservas")}
+    ${this._kpi("administrativos", "Administrativos")}
+    ${this._kpi("postos",          "Postos de Vigilância")}
+    ${this._kpi("postos_ativos",   "Postos Activos")}
+    ${this._kpi("tdu",             "Vigilantes TDU")}
+    ${this._kpi("h24",             "Vigilantes H24")}
+    ${this._kpi("tdn",             "Vigilantes TDN")}
   </div>
 
   <!-- ─ Demissões ──────────────────────────────────────────────────────── -->
@@ -281,10 +281,9 @@ class SixsDashboard {
 </div>`;
 	}
 
-	_kpi(id, label, icon) {
+	_kpi(id, label) {
 		return /* html */`
 <div class="sx-kpi" id="sx-kpi-${id}">
-  <div class="sx-kpi-icon">${icon}</div>
   <div class="sx-kpi-label">${label}</div>
   <div class="sx-kpi-value" id="sx-kpi-${id}-val">—</div>
   <div class="sx-kpi-bar" id="sx-kpi-${id}-bar"></div>
@@ -683,18 +682,26 @@ class SixsDashboard {
 		return {
 			chart: {
 				height, toolbar: { show: false },
-				fontFamily: "'DM Mono','Courier New',monospace",
-				animations: { enabled: true, easing: "easeinout", speed: 600 },
+				fontFamily: "'Outfit', sans-serif",
+				animations: { enabled: true, easing: "easeinout", speed: 500 },
 				background: "transparent",
 			},
-			grid:       { borderColor: "#F1F5F9", strokeDashArray: 4, padding: { left: 4, right: 4 } },
+			grid: {
+				borderColor: "#E8E4DC",
+				strokeDashArray: 3,
+				padding: { left: 4, right: 8 },
+				xaxis: { lines: { show: false } },
+			},
 			dataLabels: { enabled: false },
-			tooltip:    { style: { fontFamily: "'DM Mono','Courier New',monospace", fontSize: "12px" } },
+			tooltip: {
+				style: { fontFamily: "'Outfit', sans-serif", fontSize: "12px" },
+				y: { formatter: v => (v || 0).toLocaleString("pt-PT") },
+			},
 		};
 	}
 
 	_axis_style() {
-		return { colors: "#94A3B8", fontFamily: "'DM Mono','Courier New',monospace", fontSize: "11px" };
+		return { colors: "#9B9890", fontFamily: "'Outfit', sans-serif", fontSize: "11px", fontWeight: 500 };
 	}
 
 	_destroy(key) {
@@ -711,12 +718,20 @@ class SixsDashboard {
 
 	_bar(el_id, data, color = "#E85D04", height = 260) {
 		if (!data?.labels?.length) return;
+		const base = this._chart_base(height);
 		this._make_chart(el_id, {
-			...this._chart_base(height),
+			...base,
 			series: [{ name: "Total", data: data.values }],
-			chart:  { ...this._chart_base(height).chart, type: "bar" },
+			chart:  { ...base.chart, type: "bar" },
 			colors: [color],
-			plotOptions: { bar: { borderRadius: 3, columnWidth: "55%" } },
+			fill: { type: "gradient", gradient: { type: "vertical", shadeIntensity: .3, opacityFrom: 1, opacityTo: .72, stops: [0, 100] } },
+			plotOptions: { bar: { borderRadius: 5, borderRadiusApplication: "end", columnWidth: "52%" } },
+			dataLabels: {
+				enabled: true,
+				style: { fontSize: "10px", fontFamily: "'Outfit', sans-serif", fontWeight: "700", colors: ["rgba(255,255,255,.92)"] },
+				formatter: v => v > 0 ? v.toLocaleString("pt-PT") : "",
+				dropShadow: { enabled: false },
+			},
 			xaxis: { categories: data.labels, labels: { style: this._axis_style(), rotate: -30, hideOverlappingLabels: true }, axisBorder: { show: false }, axisTicks: { show: false } },
 			yaxis: { labels: { style: this._axis_style(), formatter: v => Math.round(v) } },
 		});
@@ -724,59 +739,77 @@ class SixsDashboard {
 
 	_line(el_id, data, color = "#E85D04", height = 260) {
 		if (!data?.labels?.length) return;
+		const base = this._chart_base(height);
 		this._make_chart(el_id, {
-			...this._chart_base(height),
+			...base,
 			series: [{ name: "Total", data: data.values }],
-			chart:  { ...this._chart_base(height).chart, type: "area" },
+			chart:  { ...base.chart, type: "area" },
 			colors: [color],
-			fill:   { type: "gradient", gradient: { opacityFrom: 0.3, opacityTo: 0.02, stops: [0, 95] } },
+			fill: { type: "gradient", gradient: { opacityFrom: .22, opacityTo: .02, stops: [0, 90] } },
 			stroke: { curve: "smooth", width: 2.5 },
-			xaxis:  { categories: data.labels, labels: { style: this._axis_style(), rotate: -30, hideOverlappingLabels: true }, axisBorder: { show: false }, axisTicks: { show: false } },
-			yaxis:  { labels: { style: this._axis_style(), formatter: v => Math.round(v) } },
+			markers: { size: 0, hover: { size: 5 } },
+			xaxis: { categories: data.labels, labels: { style: this._axis_style(), rotate: -30, hideOverlappingLabels: true }, axisBorder: { show: false }, axisTicks: { show: false } },
+			yaxis: { labels: { style: this._axis_style(), formatter: v => Math.round(v) } },
 		});
 	}
 
 	_hbar(el_id, data, color = "#E85D04", height = 260) {
 		if (!data?.labels?.length) return;
-		const dyn_height = Math.max(height, data.labels.length * 34 + 60);
+		const dyn_height = Math.max(height, data.labels.length * 36 + 60);
+		const base = this._chart_base(dyn_height);
 		this._make_chart(el_id, {
-			...this._chart_base(dyn_height),
+			...base,
 			series: [{ name: "Total", data: data.values }],
-			chart:  { ...this._chart_base(dyn_height).chart, type: "bar" },
+			chart:  { ...base.chart, type: "bar" },
 			colors: [color],
-			plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: "55%", dataLabels: { position: "top" } } },
-			dataLabels: { enabled: true, offsetX: 4, style: { colors: ["#64748B"], fontSize: "11px", fontFamily: "'DM Mono','Courier New',monospace" } },
-			xaxis: { categories: data.labels, labels: { style: this._axis_style() } },
-			yaxis: { labels: { style: { ...this._axis_style(), colors: "#334155" } } },
+			fill: { type: "gradient", gradient: { type: "horizontal", shadeIntensity: .2, opacityFrom: 1, opacityTo: .78, stops: [0, 100] } },
+			plotOptions: { bar: { horizontal: true, borderRadius: 5, borderRadiusApplication: "end", barHeight: "52%", dataLabels: { position: "right" } } },
+			dataLabels: {
+				enabled: true, textAnchor: "start", offsetX: 6,
+				style: { fontSize: "11px", fontFamily: "'Outfit', sans-serif", fontWeight: "700", colors: ["#3D3A35"] },
+				formatter: v => v > 0 ? v.toLocaleString("pt-PT") : "",
+				dropShadow: { enabled: false },
+			},
+			xaxis: { categories: data.labels, labels: { style: this._axis_style() }, axisBorder: { show: false }, axisTicks: { show: false } },
+			yaxis: { labels: { style: { ...this._axis_style(), colors: "#3D3A35", fontWeight: 500 } } },
 		});
 	}
 
 	_dual_bar(el_id, data, height = 300) {
 		if (!data?.labels?.length) return;
+		const base = this._chart_base(height);
 		this._make_chart(el_id, {
-			...this._chart_base(height),
+			...base,
 			series: [{ name: "Admitidos", data: data.admitidos }, { name: "Demitidos", data: data.demitidos }],
-			chart:  { ...this._chart_base(height).chart, type: "bar" },
+			chart:  { ...base.chart, type: "bar" },
 			colors: ["#059669", "#DC2626"],
-			plotOptions: { bar: { borderRadius: 3, columnWidth: "55%", grouped: true } },
+			fill: { type: "gradient", gradient: { type: "vertical", shadeIntensity: .3, opacityFrom: 1, opacityTo: .72, stops: [0, 100] } },
+			plotOptions: { bar: { borderRadius: 4, borderRadiusApplication: "end", columnWidth: "52%", grouped: true } },
+			dataLabels: {
+				enabled: true,
+				style: { fontSize: "10px", fontFamily: "'Outfit', sans-serif", fontWeight: "700", colors: ["rgba(255,255,255,.92)"] },
+				formatter: v => v > 0 ? v.toLocaleString("pt-PT") : "",
+				dropShadow: { enabled: false },
+			},
 			xaxis: { categories: data.labels, labels: { style: this._axis_style(), rotate: -30 }, axisBorder: { show: false }, axisTicks: { show: false } },
 			yaxis: { labels: { style: this._axis_style(), formatter: v => Math.round(v) } },
-			legend: { position: "top", fontFamily: "'DM Mono','Courier New',monospace", fontSize: "11px", markers: { width: 8, height: 8, radius: 2 } },
+			legend: { position: "top", fontFamily: "'Outfit', sans-serif", fontSize: "12px", fontWeight: 600, markers: { width: 8, height: 8, radius: 4 }, itemMargin: { horizontal: 10 } },
 		});
 	}
 
 	_stacked_bar(el_id, data, height = 320) {
 		if (!data?.labels?.length || !data?.series?.length) return;
 		const palette = ["#E85D04","#2563EB","#059669","#D97706","#7C3AED","#DC2626","#0891B2","#EA580C","#16A34A","#9333EA"];
+		const base = this._chart_base(height);
 		this._make_chart(el_id, {
-			...this._chart_base(height),
+			...base,
 			series: data.series,
-			chart:  { ...this._chart_base(height).chart, type: "bar", stacked: true },
+			chart:  { ...base.chart, type: "bar", stacked: true },
 			colors: data.series.map((_, i) => palette[i % palette.length]),
-			plotOptions: { bar: { columnWidth: "60%" } },
+			plotOptions: { bar: { columnWidth: "58%", borderRadius: 0 } },
 			xaxis: { categories: data.labels, labels: { style: this._axis_style(), rotate: -30 }, axisBorder: { show: false }, axisTicks: { show: false } },
 			yaxis: { labels: { style: this._axis_style(), formatter: v => Math.round(v) } },
-			legend: { position: "bottom", fontFamily: "'DM Mono','Courier New',monospace", fontSize: "10px", markers: { width: 8, height: 8, radius: 2 }, itemMargin: { horizontal: 6 } },
+			legend: { position: "bottom", fontFamily: "'Outfit', sans-serif", fontSize: "11px", fontWeight: 600, markers: { width: 8, height: 8, radius: 4 }, itemMargin: { horizontal: 6 } },
 		});
 	}
 
