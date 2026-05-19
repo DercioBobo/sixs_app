@@ -332,6 +332,48 @@
   font-size: 11px !important;
 }
 
+/* ── Card Filters (period & status pills) ─────────────────────────────────── */
+.sx-card-filters {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.sx-ob-filters {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--sx-border);
+  margin-bottom: 16px;
+}
+
+.sx-filter-row {
+  display: flex; gap: 2px;
+  background: var(--sx-bg);
+  border: 1px solid var(--sx-border);
+  border-radius: var(--sx-radius-sm);
+  padding: 2px;
+}
+
+.sx-pf-btn, .sx-sf-btn {
+  font-family: var(--sx-mono); font-size: 10px; font-weight: 500;
+  letter-spacing: .04em;
+  color: var(--sx-muted);
+  background: transparent; border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.sx-pf-btn:hover, .sx-sf-btn:hover {
+  color: var(--sx-text); background: rgba(255,255,255,.7);
+}
+.sx-pf-active, .sx-sf-active {
+  background: var(--sx-surface) !important;
+  color: var(--sx-accent) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
 /* ── Option B — Chart + Expandable Table ──────────────────────────────────── */
 .sx-ob-card {
   background: var(--sx-surface);

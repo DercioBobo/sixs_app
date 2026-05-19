@@ -228,18 +228,21 @@ def get_ausencias_mensais(months=12):
 # ─── Distribuição ─────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
-def get_vigilantes_por_cliente():
+def get_vigilantes_por_cliente(status="Ativo"):
     """Top 10 for chart + total client count for badge."""
-    rows = frappe.db.sql("""
+    sc = "AND status = %(status)s" if status != "Todos" else ""
+    p  = {"status": status}
+    rows = frappe.db.sql(f"""
         SELECT COALESCE(NULLIF(cliente,''), 'Sem Cliente') AS cliente,
                COUNT(*) AS total
         FROM `tabVigilante`
-        WHERE status = 'Ativo'
+        WHERE 1=1 {sc}
         GROUP BY cliente ORDER BY total DESC LIMIT 10
-    """, as_dict=True)
-    total_clients = frappe.db.sql(
-        "SELECT COUNT(DISTINCT COALESCE(cliente,'')) FROM `tabVigilante` WHERE status = 'Ativo'"
-    )[0][0] or 0
+    """, p, as_dict=True)
+    total_clients = frappe.db.sql(f"""
+        SELECT COUNT(DISTINCT COALESCE(cliente,''))
+        FROM `tabVigilante` WHERE 1=1 {sc}
+    """, p)[0][0] or 0
     return {
         "labels":        [r["cliente"] for r in rows],
         "values":        [r["total"]   for r in rows],
@@ -248,30 +251,30 @@ def get_vigilantes_por_cliente():
 
 
 @frappe.whitelist()
-def get_vigilantes_por_cliente_table(limit=20, offset=0, search=""):
+def get_vigilantes_por_cliente_table(status="Ativo", limit=20, offset=0, search=""):
     """Paginated full list for Option B expandable table."""
-    like   = f"%{search}%" if search else "%"
-    params = {"like": like, "limit": int(limit), "offset": int(offset)}
+    like = f"%{search}%" if search else "%"
+    sc   = "AND status = %(status)s" if status != "Todos" else ""
+    p    = {"like": like, "limit": int(limit), "offset": int(offset), "status": status}
 
-    rows = frappe.db.sql("""
+    rows = frappe.db.sql(f"""
         SELECT COALESCE(NULLIF(cliente,''),'Sem Cliente') AS cliente,
                COUNT(*) AS total
         FROM `tabVigilante`
-        WHERE status = 'Ativo'
-          AND COALESCE(cliente,'') LIKE %(like)s
+        WHERE 1=1 {sc} AND COALESCE(cliente,'') LIKE %(like)s
         GROUP BY cliente ORDER BY total DESC
         LIMIT %(limit)s OFFSET %(offset)s
-    """, params, as_dict=True)
+    """, p, as_dict=True)
 
-    total = frappe.db.sql("""
+    total = frappe.db.sql(f"""
         SELECT COUNT(DISTINCT COALESCE(cliente,'Sem Cliente'))
         FROM `tabVigilante`
-        WHERE status = 'Ativo' AND COALESCE(cliente,'') LIKE %(like)s
-    """, {"like": like})[0][0] or 0
+        WHERE 1=1 {sc} AND COALESCE(cliente,'') LIKE %(like)s
+    """, p)[0][0] or 0
 
-    grand = frappe.db.sql(
-        "SELECT COUNT(*) FROM `tabVigilante` WHERE status = 'Ativo'"
-    )[0][0] or 1
+    grand = frappe.db.sql(f"""
+        SELECT COUNT(*) FROM `tabVigilante` WHERE 1=1 {sc}
+    """, p)[0][0] or 1
 
     for r in rows:
         r["pct"] = round(r["total"] / grand * 100, 1)
@@ -322,26 +325,27 @@ def get_admitidos_demitidos(months=12):
     }
 
 
-def _by_delegacao_cat(cat_name):
-    rows = frappe.db.sql("""
+def _by_delegacao_cat(cat_name, status="Ativo"):
+    sc = "AND v.status = %(status)s" if status != "Todos" else ""
+    rows = frappe.db.sql(f"""
         SELECT COALESCE(NULLIF(v.delegacao,''), 'Sem Delegação') AS delegacao,
                COUNT(*) AS total
         FROM `tabVigilante` v
         INNER JOIN `tabCategoria Do Vigilante` c ON c.name = v.categoria
-        WHERE v.status = 'Ativo' AND c.categoria = %(cat)s
+        WHERE c.categoria = %(cat)s {sc}
         GROUP BY v.delegacao ORDER BY total DESC
-    """, {"cat": cat_name}, as_dict=True)
+    """, {"cat": cat_name, "status": status}, as_dict=True)
     return {"labels": [r["delegacao"] for r in rows], "values": [r["total"] for r in rows]}
 
 
 @frappe.whitelist()
-def get_reservas_por_delegacao():
-    return _by_delegacao_cat("Reserva")
+def get_reservas_por_delegacao(status="Ativo"):
+    return _by_delegacao_cat("Reserva", status)
 
 
 @frappe.whitelist()
-def get_feriadores_por_delegacao():
-    return _by_delegacao_cat("Feriador")
+def get_feriadores_por_delegacao(status="Ativo"):
+    return _by_delegacao_cat("Feriador", status)
 
 
 @frappe.whitelist()
@@ -358,8 +362,9 @@ def get_supervisores_por_delegacao():
 # ─── Alertas ──────────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
-def get_vigilantes_muitas_faltas(min_faltas=8):
-    return frappe.db.sql("""
+def get_vigilantes_muitas_faltas(min_faltas=8, status="Ativo"):
+    sc = "AND v.status = %(status)s" if status != "Todos" else ""
+    return frappe.db.sql(f"""
         SELECT v.nome_completo,
                v.name           AS vigilante,
                v.delegacao,
@@ -368,22 +373,20 @@ def get_vigilantes_muitas_faltas(min_faltas=8):
         FROM `tabVigilante` v
         INNER JOIN `tabTabela Ausencia` ta ON ta.vigilante = v.name
         LEFT JOIN  `tabPosto de Vigilancia` p ON p.name = v.posto_de_vigilancia
-        WHERE v.status = 'Ativo'
+        WHERE 1=1 {sc}
         GROUP BY v.name
         HAVING SUM(ta.n_de_faltas) > %(mf)s
         ORDER BY total_faltas DESC
-    """, {"mf": int(min_faltas)}, as_dict=True)
+    """, {"mf": int(min_faltas), "status": status}, as_dict=True)
 
 
 @frappe.whitelist()
-def get_users_inativos(days=3):
+def get_users_ativos():
     return frappe.db.sql("""
-        SELECT name AS user, full_name,
-               last_active,
-               DATEDIFF(NOW(), COALESCE(last_active,'2000-01-01')) AS dias_inativo
+        SELECT name AS user, full_name, last_active,
+               CASE WHEN last_active IS NULL THEN NULL
+                    ELSE DATEDIFF(NOW(), last_active) END AS dias_desde_acesso
         FROM `tabUser`
-        WHERE enabled = 1
-          AND name NOT IN ('Guest','Administrator')
-          AND (last_active IS NULL OR DATEDIFF(NOW(), last_active) > %(days)s)
-        ORDER BY dias_inativo DESC
-    """, {"days": int(days)}, as_dict=True)
+        WHERE enabled = 1 AND name NOT IN ('Guest','Administrator')
+        ORDER BY last_active DESC
+    """, as_dict=True)
