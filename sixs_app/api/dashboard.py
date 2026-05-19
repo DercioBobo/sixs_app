@@ -71,8 +71,8 @@ def get_cards_summary():
     return {
         "clientes":      scalar("SELECT COUNT(*) FROM `tabCustomer` WHERE disabled = 0"),
         "ativos":        scalar("SELECT COUNT(*) FROM `tabVigilante` WHERE status = 'Ativo'"),
-        "mulheres":      scalar("SELECT COUNT(*) FROM `tabVigilante` WHERE status = 'Ativo' AND sexo = 'Female'"),
-        "homens":        scalar("SELECT COUNT(*) FROM `tabVigilante` WHERE status = 'Ativo' AND sexo = 'Male'"),
+        "mulheres":      scalar("SELECT COUNT(*) FROM `tabVigilante` WHERE status = 'Ativo' AND sexo = 'Feminino'"),
+        "homens":        scalar("SELECT COUNT(*) FROM `tabVigilante` WHERE status = 'Ativo' AND sexo = 'Masculino'"),
         "armados":       by_categoria(["Vigilante Armado", "Reação Armada"]),
         "simples":       by_categoria(["Vigilante Normal"]),
         "reservas":      by_categoria(["Reserva"]),
