@@ -362,8 +362,12 @@ def get_supervisores_por_delegacao():
 # ─── Alertas ──────────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
-def get_vigilantes_muitas_faltas(min_faltas=8, status="Ativo"):
+def get_vigilantes_muitas_faltas(min_faltas=8, status="Ativo", months=None):
     sc = "AND v.status = %(status)s" if status != "Todos" else ""
+    pc = "AND a.data >= %(fd)s"      if months           else ""
+    params = {"mf": int(min_faltas), "status": status}
+    if months:
+        params["fd"] = _from(months=int(months))
     return frappe.db.sql(f"""
         SELECT v.nome_completo,
                v.name           AS vigilante,
@@ -372,12 +376,13 @@ def get_vigilantes_muitas_faltas(min_faltas=8, status="Ativo"):
                SUM(ta.n_de_faltas) AS total_faltas
         FROM `tabVigilante` v
         INNER JOIN `tabTabela Ausencia` ta ON ta.vigilante = v.name
+        INNER JOIN `tabAusencias`       a  ON a.name = ta.parent
         LEFT JOIN  `tabPosto de Vigilancia` p ON p.name = v.posto_de_vigilancia
-        WHERE 1=1 {sc}
+        WHERE a.docstatus < 2 {sc} {pc}
         GROUP BY v.name
         HAVING SUM(ta.n_de_faltas) > %(mf)s
         ORDER BY total_faltas DESC
-    """, {"mf": int(min_faltas), "status": status}, as_dict=True)
+    """, params, as_dict=True)
 
 
 @frappe.whitelist()

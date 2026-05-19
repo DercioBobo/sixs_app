@@ -6,11 +6,11 @@ frappe.pages["sixs-dashboard"].on_page_show = function (wrapper) {
 	if (frappe.sixs_dashboard) frappe.sixs_dashboard.on_show();
 };
 
-// Period preset arrays — shared across all chart configs
+// Period preset arrays — shared across chart configs
 const _P = {
-	daily:   [{l:"30d",a:{days:30}},{l:"90d",a:{days:90}},{l:"6m",a:{days:180}},{l:"1a",a:{days:365}}],
 	weekly:  [{l:"12sem",a:{weeks:12}},{l:"26sem",a:{weeks:26}},{l:"1a",a:{weeks:52}}],
 	monthly: [{l:"6m",a:{months:6}},{l:"12m",a:{months:12}},{l:"2a",a:{months:24}}],
+	faltas:  [{l:"1m",a:{months:1}},{l:"3m",a:{months:3}},{l:"6m",a:{months:6}},{l:"1a",a:{months:12}}],
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -31,15 +31,20 @@ class SixsDashboard {
 
 		// Period filter state — current args per chart/section id
 		this._pf = {
-			"sx-ch-demissoes-diarias":  { days: 30 },
 			"sx-ch-demissoes-semanais": { weeks: 12 },
-			"sx-ch-rot-diarias":        { days: 30 },
 			"sx-ch-rot-semanais":       { weeks: 12 },
 			"sx-ch-rot-mensais":        { months: 12 },
 			"rot-cliente":              { months: 6 },
 			"sx-ch-aus-semanais":       { weeks: 12 },
 			"sx-ch-aus-mensais":        { months: 12 },
 			"sx-ch-admitidos":          { months: 12 },
+			"faltas":                   { months: 6 },
+		};
+
+		// Navigation state for daily charts — windowed view within 90-day buffer
+		this._nav = {
+			"sx-ch-demissoes-diarias": { all_data: null, window: 7, offset: 0 },
+			"sx-ch-rot-diarias":       { all_data: null, window: 7, offset: 0 },
 		};
 
 		// Status filter state — current status per section id
@@ -83,14 +88,24 @@ class SixsDashboard {
 	// Build loader functions after render (so DOM IDs exist)
 	_build_loaders() {
 		this._loaders = {
-			"sx-ch-demissoes-diarias":  () => this._call("get_demissoes_diarias",  this._pf["sx-ch-demissoes-diarias"])
-				.then(d => this._bar("sx-ch-demissoes-diarias", d, "#DC2626")),
+			"sx-ch-demissoes-diarias":  () => this._call("get_demissoes_diarias", { days: 90 }).then(d => {
+				if (d?.labels?.length) {
+					this._nav["sx-ch-demissoes-diarias"].all_data = d;
+					this._nav["sx-ch-demissoes-diarias"].offset   = 0;
+					this._nav_render("sx-ch-demissoes-diarias");
+				}
+			}),
 
 			"sx-ch-demissoes-semanais": () => this._call("get_demissoes_semanais", this._pf["sx-ch-demissoes-semanais"])
 				.then(d => this._bar("sx-ch-demissoes-semanais", d, "#DC2626")),
 
-			"sx-ch-rot-diarias":        () => this._call("get_rotatividades_diarias",  this._pf["sx-ch-rot-diarias"])
-				.then(d => this._line("sx-ch-rot-diarias", d, "#D97706")),
+			"sx-ch-rot-diarias":        () => this._call("get_rotatividades_diarias", { days: 90 }).then(d => {
+				if (d?.labels?.length) {
+					this._nav["sx-ch-rot-diarias"].all_data = d;
+					this._nav["sx-ch-rot-diarias"].offset   = 0;
+					this._nav_render("sx-ch-rot-diarias");
+				}
+			}),
 
 			"sx-ch-rot-semanais":       () => this._call("get_rotatividades_semanais", this._pf["sx-ch-rot-semanais"])
 				.then(d => this._line("sx-ch-rot-semanais", d, "#D97706")),
@@ -133,8 +148,11 @@ class SixsDashboard {
 			"sx-ch-feriadores-deleg": () => this._call("get_feriadores_por_delegacao", { status: this._sf["sx-ch-feriadores-deleg"] })
 				.then(d => this._hbar("sx-ch-feriadores-deleg", d, "#EA580C")),
 
-			"faltas": () => this._call("get_vigilantes_muitas_faltas", { min_faltas: 8, status: this._sf["faltas"] })
-				.then(d => this._ob_init_faltas(d)),
+			"faltas": () => this._call("get_vigilantes_muitas_faltas", {
+				min_faltas: 8,
+				status: this._sf["faltas"],
+				months: (this._pf["faltas"] || {}).months || 6,
+			}).then(d => this._ob_init_faltas(d)),
 		};
 	}
 
@@ -187,14 +205,14 @@ class SixsDashboard {
   <!-- ─ Demissões ──────────────────────────────────────────────────────── -->
   <div class="sx-section-label">Demissões</div>
   <div class="sx-row-half">
-    ${this._chart_card("sx-ch-demissoes-diarias",  "Demissões Diárias",  "Período seleccionado", 260, _P.daily)}
+    ${this._chart_card("sx-ch-demissoes-diarias",  "Demissões Diárias",  "Navegar por período", 260, null, null, true)}
     ${this._chart_card("sx-ch-demissoes-semanais", "Demissões Semanais", "Período seleccionado", 260, _P.weekly)}
   </div>
 
   <!-- ─ Rotatividades ──────────────────────────────────────────────────── -->
   <div class="sx-section-label">Rotatividades</div>
   <div class="sx-row-half">
-    ${this._chart_card("sx-ch-rot-diarias",  "Rotatividades Diárias",  "Período seleccionado", 260, _P.daily)}
+    ${this._chart_card("sx-ch-rot-diarias",  "Rotatividades Diárias",  "Navegar por período", 260, null, null, true)}
     ${this._chart_card("sx-ch-rot-semanais", "Rotatividades Semanais", "Período seleccionado", 260, _P.weekly)}
   </div>
   <div class="sx-row-full">
@@ -249,10 +267,10 @@ class SixsDashboard {
   <!-- Vigilantes com +8 Faltas — Option B -->
   <div class="sx-row-full">${this._ob_card("faltas",
     "Vigilantes com mais de 8 Faltas",
-    "Acumulado",
+    "Período seleccionado",
     "vigilantes",
     [{ label: "#" }, { label: "Vigilante" }, { label: "Nome" }, { label: "Posto" }, { label: "Delegação" }, { label: "Faltas", right: true }],
-    240, true, null
+    240, true, _P.faltas
   )}</div>
 
   <!-- Utilizadores Activos -->
@@ -290,26 +308,57 @@ class SixsDashboard {
 </div>`;
 	}
 
-	_chart_card(id, title, sub, height = 260, periods = null, status_id = null) {
-		const has_filters = periods || status_id;
+	_chart_card(id, title, sub, height = 260, periods = null, status_id = null, navigable = false) {
+		const has_right = periods || status_id || navigable;
+		const right_html = navigable
+			? this._nav_window_pills(id)
+			: `${status_id ? this._status_pills(status_id) : ""}${periods ? this._period_pills(id, periods) : ""}`;
 		return /* html */`
 <div class="sx-card">
   <div class="sx-card-head">
     <div><h3 class="sx-card-title">${title}</h3><p class="sx-card-sub">${sub}</p></div>
-    ${has_filters ? `<div class="sx-card-filters">${status_id ? this._status_pills(status_id) : ""}${periods ? this._period_pills(id, periods) : ""}</div>` : ""}
+    ${has_right ? `<div class="sx-card-filters">${right_html}</div>` : ""}
   </div>
+  ${navigable ? this._nav_bar(id) : ""}
   <div id="${id}" style="height:${height}px;width:100%"></div>
 </div>`;
 	}
 
 	_period_pills(target, options) {
-		return `<div class="sx-filter-row">${options.map((o, i) =>
-			`<button class="sx-pf-btn${i === 0 ? " sx-pf-active" : ""}" data-target="${target}" data-args='${JSON.stringify(o.a)}'>${o.l}</button>`
+		const cur = this._pf[target] || {};
+		return `<div class="sx-filter-row">${options.map(o => {
+			const active = Object.keys(o.a).every(k => o.a[k] == cur[k]) && Object.keys(o.a).length === Object.keys(cur).length;
+			return `<button class="sx-pf-btn${active ? " sx-pf-active" : ""}" data-target="${target}" data-args='${JSON.stringify(o.a)}'>${o.l}</button>`;
+		}).join("")}</div>`;
+	}
+
+	_nav_window_pills(chart_id) {
+		const opts = [{l:"7d",w:7},{l:"14d",w:14},{l:"30d",w:30}];
+		const cur  = this._nav[chart_id]?.window || 7;
+		return `<div class="sx-filter-row">${opts.map(o =>
+			`<button class="sx-nw-btn${o.w === cur ? " sx-pf-active" : ""}" data-chart="${chart_id}" data-window="${o.w}">${o.l}</button>`
 		).join("")}</div>`;
 	}
 
+	_nav_bar(id) {
+		return /* html */`
+<div class="sx-nav-bar">
+  <button class="sx-nav-btn sx-nav-prev" data-chart="${id}" disabled title="Período anterior">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  </button>
+  <span class="sx-nav-range" id="sx-nav-range-${id}">—</span>
+  <button class="sx-nav-btn sx-nav-next" data-chart="${id}" disabled title="Período seguinte">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  </button>
+</div>`;
+	}
+
 	_status_pills(target) {
-		const opts = [{ l: "Activos", v: "Ativo" }, { l: "Inativos", v: "Inativo" }, { l: "Todos", v: "Todos" }];
+		const opts = [{ l: "Activos", v: "Ativo" }, { l: "Inactivos", v: "Inativo" }, { l: "Todos", v: "Todos" }];
 		return `<div class="sx-filter-row">${opts.map((o, i) =>
 			`<button class="sx-sf-btn${i === 0 ? " sx-sf-active" : ""}" data-target="${target}" data-status="${o.v}">${o.l}</button>`
 		).join("")}</div>`;
@@ -378,6 +427,34 @@ class SixsDashboard {
 		const $b = this.page.body;
 
 		$b.on("click", "#sx-refresh", () => this.refresh());
+
+		// Nav window size (daily charts)
+		$b.on("click", ".sx-nw-btn", e => {
+			const btn      = $(e.currentTarget);
+			const chart_id = btn.data("chart");
+			const win      = parseInt(btn.data("window"));
+			$b.find(`.sx-nw-btn[data-chart="${chart_id}"]`).removeClass("sx-pf-active");
+			btn.addClass("sx-pf-active");
+			this._nav[chart_id].window = win;
+			this._nav[chart_id].offset = 0;
+			this._nav_render(chart_id);
+		});
+
+		// Nav prev — go back in time
+		$b.on("click", ".sx-nav-prev", e => {
+			const chart_id = $(e.currentTarget).data("chart");
+			const nav      = this._nav[chart_id];
+			if (!nav?.all_data) return;
+			const max_offset = Math.ceil(nav.all_data.labels.length / nav.window) - 1;
+			if (nav.offset < max_offset) { nav.offset++; this._nav_render(chart_id); }
+		});
+
+		// Nav next — go forward in time
+		$b.on("click", ".sx-nav-next", e => {
+			const chart_id = $(e.currentTarget).data("chart");
+			const nav      = this._nav[chart_id];
+			if (nav?.offset > 0) { nav.offset--; this._nav_render(chart_id); }
+		});
 
 		// Period filter
 		$b.on("click", ".sx-pf-btn", e => {
@@ -517,6 +594,38 @@ class SixsDashboard {
 			if (chevron) chevron.style.transform = "";
 			if (label)   label.textContent = `Ver todos os ${id === "faltas" ? "vigilantes" : "clientes"}`;
 		}
+	}
+
+	_nav_render(id) {
+		const nav = this._nav[id];
+		if (!nav?.all_data?.labels?.length) return;
+		const { all_data, window: win, offset } = nav;
+		const total = all_data.labels.length;
+
+		// Slice the window from the end of the array (most recent = rightmost)
+		const end   = total - offset * win;
+		const start = Math.max(0, end - win);
+		const slice = {
+			labels: all_data.labels.slice(start, end),
+			values: all_data.values.slice(start, end),
+		};
+
+		// Date range label
+		const range_el = this.page.body.find(`#sx-nav-range-${id}`)[0];
+		if (range_el && slice.labels.length) {
+			range_el.textContent = `${slice.labels[0]}  →  ${slice.labels[slice.labels.length - 1]}`;
+		}
+
+		// Arrow states
+		const max_offset = Math.ceil(total / win) - 1;
+		const prev = this.page.body.find(`.sx-nav-prev[data-chart="${id}"]`)[0];
+		const next = this.page.body.find(`.sx-nav-next[data-chart="${id}"]`)[0];
+		if (prev) prev.disabled = offset >= max_offset;
+		if (next) next.disabled = offset === 0;
+
+		// Render chart
+		const color = id.includes("dem") ? "#DC2626" : "#D97706";
+		this._bar(id, slice, color);
 	}
 
 	_ob_set_badge(id, count, unit) {

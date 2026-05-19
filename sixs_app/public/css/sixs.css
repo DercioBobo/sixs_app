@@ -244,6 +244,39 @@
   box-shadow: 0 1px 4px rgba(0,0,0,.09);
 }
 
+/* ── Chart Navigation Bar (daily windowed charts) ────────────────────────── */
+.sx-nav-bar {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px;
+  padding: 0 0 14px;
+}
+
+.sx-nav-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  background: var(--sx-bg);
+  border: 1px solid var(--sx-border);
+  border-radius: var(--sx-radius-sm);
+  cursor: pointer;
+  color: var(--sx-muted);
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+  flex-shrink: 0;
+}
+.sx-nav-btn:hover:not(:disabled) {
+  background: var(--sx-surface);
+  border-color: var(--sx-accent);
+  color: var(--sx-accent);
+  box-shadow: 0 0 0 3px rgba(232,93,4,.08);
+}
+.sx-nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+.sx-nav-range {
+  font-size: 12px; font-weight: 600;
+  color: var(--sx-muted);
+  min-width: 140px; text-align: center;
+  letter-spacing: .02em;
+}
+
 /* ── Table Card ───────────────────────────────────────────────────────────── */
 .sx-table-card {
   background: var(--sx-surface);
