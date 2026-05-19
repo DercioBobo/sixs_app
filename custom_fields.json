@@ -1,0 +1,138 @@
+{
+  "Address": [
+    {
+      "fieldname": "is_your_company_address",
+      "fieldtype": "Check",
+      "label": "Is Your Company Address",
+      "options": null
+    },
+    {
+      "fieldname": "tax_category",
+      "fieldtype": "Link",
+      "label": "Tax Category",
+      "options": "Tax Category"
+    }
+  ],
+  "Movimentacao De Arma": [
+    {
+      "fieldname": "workflow_state",
+      "fieldtype": "Link",
+      "label": "Workflow State",
+      "options": "Workflow State"
+    }
+  ],
+  "Ausencias": [
+    {
+      "fieldname": "workflow_state",
+      "fieldtype": "Link",
+      "label": "Workflow State",
+      "options": "Workflow State"
+    }
+  ],
+  "Company": [
+    {
+      "fieldname": "column_break_10",
+      "fieldtype": "Column Break",
+      "label": null,
+      "options": null
+    },
+    {
+      "fieldname": "default_employee_advance_account",
+      "fieldtype": "Link",
+      "label": "Default Employee Advance Account",
+      "options": "Account"
+    },
+    {
+      "fieldname": "default_expense_claim_payable_account",
+      "fieldtype": "Link",
+      "label": "Default Expense Claim Payable Account",
+      "options": "Account"
+    },
+    {
+      "fieldname": "default_payroll_payable_account",
+      "fieldtype": "Link",
+      "label": "Default Payroll Payable Account",
+      "options": "Account"
+    },
+    {
+      "fieldname": "hr_settings_section",
+      "fieldtype": "Section Break",
+      "label": "HR & Payroll Settings",
+      "options": null
+    }
+  ],
+  "Contact": [
+    {
+      "fieldname": "is_billing_contact",
+      "fieldtype": "Check",
+      "label": "Is Billing Contact",
+      "options": null
+    }
+  ],
+  "Customer": [
+    {
+      "fieldname": "custom_column_break_3zmfa",
+      "fieldtype": "Column Break",
+      "label": null,
+      "options": null
+    },
+    {
+      "fieldname": "custom_outro_salario",
+      "fieldtype": "Currency",
+      "label": "Outro salario",
+      "options": null
+    },
+    {
+      "fieldname": "custom_salario_base1",
+      "fieldtype": "Currency",
+      "label": "Salario Base1",
+      "options": null
+    },
+    {
+      "fieldname": "custom_salario_base2",
+      "fieldtype": "Currency",
+      "label": "Salario Base2",
+      "options": null
+    },
+    {
+      "fieldname": "custom_salario_base3",
+      "fieldtype": "Currency",
+      "label": "Salario Base3",
+      "options": null
+    },
+    {
+      "fieldname": "custom_salarios",
+      "fieldtype": "Section Break",
+      "label": "Salarios",
+      "options": null
+    },
+    {
+      "fieldname": "custom_tax_id",
+      "fieldtype": "Int",
+      "label": "NUIT",
+      "options": null
+    },
+    {
+      "fieldname": "exempt_from_sales_tax",
+      "fieldtype": "Check",
+      "label": "Is customer exempted from sales tax?",
+      "options": null
+    }
+  ],
+  "Deducoes": [
+    {
+      "fieldname": "workflow_state",
+      "fieldtype": "Link",
+      "label": "Workflow State",
+      "options": "Workflow State"
+    }
+  ],
+  "Department": [
+    {
+      "fieldname": "approvers",
+      "fieldtype": "Section Break",
+      "label": "Approvers",
+      "options": null
+    }
+  ]
+}
