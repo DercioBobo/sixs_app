@@ -420,15 +420,22 @@
 .sx-ob-toggle {
   width: 100%;
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 0 0;
-  border: none; background: none; cursor: pointer;
-  border-top: 1px dashed var(--sx-border);
-  margin-top: 16px;
-  font-family: var(--sx-sans); font-size: 12px; font-weight: 600;
-  color: var(--sx-muted);
-  transition: color .18s;
+  padding: 11px 16px;
+  border: 1.5px solid rgba(232,93,4,.30);
+  border-radius: var(--sx-radius-sm);
+  background: rgba(232,93,4,.05);
+  cursor: pointer;
+  margin-top: 18px;
+  font-family: var(--sx-sans); font-size: 12px; font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--sx-accent);
+  transition: background .18s, border-color .18s, box-shadow .18s;
 }
-.sx-ob-toggle:hover { color: var(--sx-accent); }
+.sx-ob-toggle:hover {
+  background: rgba(232,93,4,.10);
+  border-color: var(--sx-accent);
+  box-shadow: 0 0 0 3px rgba(232,93,4,.08);
+}
 .sx-ob-toggle:hover .sx-ob-badge {
   background: #FFF3EC; color: var(--sx-accent); border-color: var(--sx-accent-2);
 }
