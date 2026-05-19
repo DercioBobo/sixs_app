@@ -148,6 +148,7 @@ def get_rotatividades_mensais(months=12):
 
 @frappe.whitelist()
 def get_rotatividades_por_cliente(months=6):
+    """Top 10 clients stacked chart + total client count for badge."""
     rows = frappe.db.sql("""
         SELECT DATE_FORMAT(data,'%%Y-%%m')                        AS period,
                COALESCE(NULLIF(cliente_antigo_posto,''), 'N/D')   AS cliente,
@@ -157,7 +158,44 @@ def get_rotatividades_por_cliente(months=6):
         GROUP BY period, cliente_antigo_posto
         ORDER BY period, total DESC
     """, {"fd": _from(months=int(months))}, as_dict=True)
-    return _pivot_client(rows)
+    result = _pivot_client(rows)
+    total_clients = frappe.db.sql("""
+        SELECT COUNT(DISTINCT COALESCE(cliente_antigo_posto,''))
+        FROM `tabRotatividade`
+        WHERE docstatus < 2 AND data >= %(fd)s
+    """, {"fd": _from(months=int(months))})[0][0] or 0
+    result["total_clients"] = total_clients
+    return result
+
+
+@frappe.whitelist()
+def get_rot_por_cliente_table(months=6, limit=20, offset=0, search=""):
+    """Paginated per-client totals for Option B expandable table."""
+    like   = f"%{search}%" if search else "%"
+    fd     = _from(months=int(months))
+    params = {"fd": fd, "like": like, "limit": int(limit), "offset": int(offset)}
+
+    rows = frappe.db.sql("""
+        SELECT COALESCE(NULLIF(cliente_antigo_posto,''),'N/D') AS cliente,
+               COUNT(*) AS total,
+               MAX(data) AS ultima_data
+        FROM `tabRotatividade`
+        WHERE docstatus < 2 AND data >= %(fd)s
+          AND COALESCE(cliente_antigo_posto,'') LIKE %(like)s
+        GROUP BY cliente_antigo_posto
+        ORDER BY total DESC
+        LIMIT %(limit)s OFFSET %(offset)s
+    """, params, as_dict=True)
+
+    total = frappe.db.sql("""
+        SELECT COUNT(DISTINCT COALESCE(cliente_antigo_posto,'N/D'))
+        FROM `tabRotatividade`
+        WHERE docstatus < 2 AND data >= %(fd)s
+          AND COALESCE(cliente_antigo_posto,'') LIKE %(like)s
+    """, {"fd": fd, "like": like})[0][0] or 0
+
+    return {"rows": rows, "total": total,
+            "has_more": int(offset) + int(limit) < total}
 
 
 # ─── Ausências ────────────────────────────────────────────────────────────────
@@ -191,14 +229,55 @@ def get_ausencias_mensais(months=12):
 
 @frappe.whitelist()
 def get_vigilantes_por_cliente():
+    """Top 10 for chart + total client count for badge."""
     rows = frappe.db.sql("""
         SELECT COALESCE(NULLIF(cliente,''), 'Sem Cliente') AS cliente,
                COUNT(*) AS total
         FROM `tabVigilante`
         WHERE status = 'Ativo'
-        GROUP BY cliente ORDER BY total DESC LIMIT 15
+        GROUP BY cliente ORDER BY total DESC LIMIT 10
     """, as_dict=True)
-    return {"labels": [r["cliente"] for r in rows], "values": [r["total"] for r in rows]}
+    total_clients = frappe.db.sql(
+        "SELECT COUNT(DISTINCT COALESCE(cliente,'')) FROM `tabVigilante` WHERE status = 'Ativo'"
+    )[0][0] or 0
+    return {
+        "labels":        [r["cliente"] for r in rows],
+        "values":        [r["total"]   for r in rows],
+        "total_clients": total_clients,
+    }
+
+
+@frappe.whitelist()
+def get_vigilantes_por_cliente_table(limit=20, offset=0, search=""):
+    """Paginated full list for Option B expandable table."""
+    like   = f"%{search}%" if search else "%"
+    params = {"like": like, "limit": int(limit), "offset": int(offset)}
+
+    rows = frappe.db.sql("""
+        SELECT COALESCE(NULLIF(cliente,''),'Sem Cliente') AS cliente,
+               COUNT(*) AS total
+        FROM `tabVigilante`
+        WHERE status = 'Ativo'
+          AND COALESCE(cliente,'') LIKE %(like)s
+        GROUP BY cliente ORDER BY total DESC
+        LIMIT %(limit)s OFFSET %(offset)s
+    """, params, as_dict=True)
+
+    total = frappe.db.sql("""
+        SELECT COUNT(DISTINCT COALESCE(cliente,'Sem Cliente'))
+        FROM `tabVigilante`
+        WHERE status = 'Ativo' AND COALESCE(cliente,'') LIKE %(like)s
+    """, {"like": like})[0][0] or 0
+
+    grand = frappe.db.sql(
+        "SELECT COUNT(*) FROM `tabVigilante` WHERE status = 'Ativo'"
+    )[0][0] or 1
+
+    for r in rows:
+        r["pct"] = round(r["total"] / grand * 100, 1)
+
+    return {"rows": rows, "total": total,
+            "has_more": int(offset) + int(limit) < total}
 
 
 @frappe.whitelist()
